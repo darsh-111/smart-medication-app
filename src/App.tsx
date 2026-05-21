@@ -17,6 +17,7 @@ export default function App() {
         <Route path="/choice" element={<Choice />} />
         <Route path="/medicines" element={<MedicineList />} />
         <Route path="/medicines/add" element={<AddMedicine />} />
+        <Route path="/medicines/edit/:index" element={<AddMedicine />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
