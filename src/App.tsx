@@ -6,6 +6,7 @@ import Register from './pages/register.tsx';
 import Choice from './pages/Choice.tsx';
 import MedicineList from './pages/MedicineList.tsx';
 import AddMedicine from './pages/AddMedicine.tsx';
+import AlarmScreen from './pages/AlarmScreen.tsx';
 
 export default function App() {
   return (
@@ -15,7 +16,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/choice" element={<Choice />} />
-        <Route path="/medicines" element={<MedicineList />} />
+<Route path="/alarm/:index" element={<AlarmScreen />} />        <Route path="/medicines" element={<MedicineList />} />
         <Route path="/medicines/add" element={<AddMedicine />} />
         <Route path="/medicines/edit/:index" element={<AddMedicine />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -31,7 +31,7 @@ export default function Choice() {
                 <p className="text-sm text-slate-600 mt-1">أفضل تجربة ذكية مع تنبيهات وتنظيم تلقائي للجرعات.</p>
               </div>
             </div>
-            <ul className="space-y-3 text-sm text-slate-600">
+            <ul className="space-y-3 text-sm text-slate-600 ">
               <li>• مسح الأدوية تلقائيًا</li>
               <li>• تنبيهات الجرعات والمواعيد</li>
               <li>• سجل المستخدم والدواء الذكي</li>
