@@ -108,69 +108,69 @@ export default function AddMedicine() {
     };
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center p-6 overflow-hidden bg-[#050505] text-white">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(255,255,255,0.12),transparent_24%)] pointer-events-none" />
+        <div className="relative min-h-screen flex items-center justify-center p-6 overflow-hidden bg-sky-50 text-slate-900 font-body">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(14,165,233,0.12),transparent_24%)] pointer-events-none" />
 
-            <div className="relative z-10 w-full max-w-xl rounded-[40px] border border-white/20 bg-black/70 backdrop-blur-md shadow-[0_25px_50px_rgba(0,0,0,0.5)] p-8 space-y-8">
+            <div className="relative z-10 w-full max-w-xl rounded-[40px] border border-sky-200 bg-white/95 backdrop-blur-md shadow-[0_25px_50px_rgba(14,165,233,0.12)] p-8 space-y-8">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <p className="text-sm uppercase tracking-[0.32em] text-white/50 mb-2">إضافة دواء جديد</p>
-                        <h1 className="text-3xl font-semibold text-white">{isEditing ? 'تعديل الدواء' : 'أضف دواء إلى قائمتك'}</h1>
+                        <p className="text-sm uppercase tracking-[0.32em] text-slate-500 mb-2">إضافة دواء جديد</p>
+                        <h1 className="text-3xl font-display font-semibold text-slate-900">{isEditing ? 'تعديل الدواء' : 'أضف دواء إلى قائمتك'}</h1>
                     </div>
                     <button
                         type="button"
                         onClick={() => navigate('/medicines')}
-                        className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+                        className="rounded-full border border-sky-200 bg-white/95 px-4 py-2 text-sm text-slate-900 transition hover:bg-slate-100"
                     >
                         العودة للقائمة
                     </button>
                 </div>
 
                 <div className="space-y-4">
-                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                        <div className="mb-2 text-sm text-white/70">اسم الدواء</div>
+                    <div className="rounded-3xl border border-sky-200 bg-slate-50 p-4">
+                        <div className="mb-2 text-sm text-slate-600">اسم الدواء</div>
                         <input
                             type="text"
                             value={name}
                             onChange={(event) => setName(event.currentTarget.value)}
                             placeholder="أدخل اسم الدواء"
-                            className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400"
                         />
                     </div>
 
-                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                        <div className="mb-2 text-sm text-white/70">الجرعة</div>
+                    <div className="rounded-3xl border border-sky-200 bg-slate-50 p-4">
+                        <div className="mb-2 text-sm text-slate-600">الجرعة</div>
                         <input
                             type="text"
                             value={dose}
                             onChange={(event) => setDose(event.currentTarget.value)}
                             placeholder="أدخل الجرعة"
-                            className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400"
                         />
                     </div>
 
-                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                        <div className="mb-2 text-sm text-white/70">جدول المواعيد</div>
+                    <div className="rounded-3xl border border-sky-200 bg-slate-50 p-4">
+                        <div className="mb-2 text-sm text-slate-600">جدول المواعيد</div>
                         <button
                             type="button"
                             onClick={() => setShowSchedule((current) => !current)}
-                            className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-left text-white transition hover:bg-white/10"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-left text-slate-900 transition hover:bg-slate-200"
                         >
                             {showSchedule ? 'اضغط لإخفاء جدول المواعيد' : 'اضغط لإظهار جدول المواعيد'}
                         </button>
                         {!showSchedule ? (
-                            <p className="mt-3 text-sm text-white/60">اضغط الزر حتى يظهر جدول مواعيد الدواء.</p>
+                            <p className="mt-3 text-sm text-slate-600">اضغط الزر حتى يظهر جدول مواعيد الدواء.</p>
                         ) : (
-                            <p className="mt-3 text-sm text-white/60">اضغط مرة أخرى لإخفاء جدول المواعيد.</p>
+                            <p className="mt-3 text-sm text-slate-600">اضغط مرة أخرى لإخفاء جدول المواعيد.</p>
                         )}
                     </div>
 
                     {showSchedule && (
-                        <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                            <div className="mb-4 text-sm text-white/70">جدول مواعيد أسبوعي</div>
-                            <div className="overflow-x-auto rounded-3xl border border-white/10 bg-black/30">
+                        <div className="rounded-3xl border border-sky-200 bg-slate-50 p-4">
+                            <div className="mb-4 text-sm text-slate-600">جدول مواعيد أسبوعي</div>
+                            <div className="overflow-x-auto rounded-3xl border border-slate-300 bg-slate-100">
                                 <table className="min-w-full border-collapse text-sm">
-                                    <thead className="bg-white/5 text-white/70">
+                                    <thead className="bg-slate-100 text-slate-700">
                                         <tr>
                                             <th className="px-4 py-3 text-start font-semibold">اليوم</th>
                                             <th className="px-4 py-3 text-center font-semibold">الجرعة الأولى</th>
@@ -181,11 +181,11 @@ export default function AddMedicine() {
                                     </thead>
                                     <tbody className="divide-y divide-white/10">
                                         {weekDays.map((day) => (
-                                            <tr key={day.key} className="hover:bg-white/5 transition-colors">
-                                                <td className="px-4 py-4 text-white">{day.name}</td>
+                                            <tr key={day.key} className="hover:bg-slate-100 transition-colors">
+                                                <td className="px-4 py-4 text-slate-900">{day.name}</td>
                                                 <td className="px-4 py-4 text-center">
                                                     <select
-                                                        className="w-full appearance-none rounded-2xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+                                                        className="w-full appearance-none rounded-2xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-900 outline-none"
                                                         value={schedule[day.key].firstTime}
                                                         onChange={(event) => setScheduleTime(day.key, 'firstTime', event.currentTarget.value)}
                                                     >
@@ -198,7 +198,7 @@ export default function AddMedicine() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <select
-                                                        className="w-full appearance-none rounded-2xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+                                                        className="w-full appearance-none rounded-2xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-900 outline-none"
                                                         value={schedule[day.key].secondTime}
                                                         onChange={(event) => setScheduleTime(day.key, 'secondTime', event.currentTarget.value)}
                                                     >
@@ -211,7 +211,7 @@ export default function AddMedicine() {
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <select
-                                                        className="w-full appearance-none rounded-2xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+                                                        className="w-full appearance-none rounded-2xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-900 outline-none"
                                                         value={schedule[day.key].thirdTime}
                                                         onChange={(event) => setScheduleTime(day.key, 'thirdTime', event.currentTarget.value)}
                                                     >
@@ -227,7 +227,7 @@ export default function AddMedicine() {
                                                         type="checkbox"
                                                         checked={schedule[day.key].repeat}
                                                         onChange={() => toggleSchedule(day.key)}
-                                                        className="h-4 w-4 rounded border-white/20 bg-black/30 text-cyan-400"
+                                                        className="h-4 w-4 rounded border-slate-300 bg-slate-100 text-sky-500"
                                                     />
                                                 </td>
                                             </tr>
@@ -238,21 +238,21 @@ export default function AddMedicine() {
                         </div>
                     )}
 
-                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                        <div className="mb-2 text-sm text-white/70">ملاحظات إضافية</div>
+                    <div className="rounded-3xl border border-sky-200 bg-slate-50 p-4">
+                        <div className="mb-2 text-sm text-slate-600">ملاحظات إضافية</div>
                         <input
                             type="text"
                             value={notes}
                             onChange={(event) => setNotes(event.currentTarget.value)}
                             placeholder="أي ملاحظات إضافية"
-                            className="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400"
                         />
                     </div>
                 </div>
 
                 <button
                     type="button"
-                    className="w-full rounded-3xl bg-[#68b6ff] px-5 py-4 text-sm font-semibold text-black transition hover:bg-[#4f94d0] disabled:cursor-not-allowed disabled:bg-white/10"
+                    className="w-full rounded-3xl bg-sky-600 px-5 py-4 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200"
                     onClick={handleAddMedicine}
                     disabled={!name || !dose}
                 >
