@@ -69,6 +69,22 @@ export default function MedicineList() {
 
                 {/* عرض كروت الأدوية */}
                 <div className="space-y-4">
+                    
+                    {/* بنر الصندوق الذكي التفاعلي */}
+                    <div className="p-4 bg-gradient-to-r from-sky-600 to-sky-500 rounded-3xl text-white flex items-center justify-between shadow-md">
+                        <div className="space-y-1 text-right">
+                            <h3 className="text-xs font-extrabold uppercase tracking-wider opacity-90">الجهاز متصل بالإنترنت 🟢</h3>
+                            <h4 className="text-sm font-bold">صندوق الأدوية الذكي الخاص بك</h4>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/smart-box')}
+                            className="bg-white text-sky-700 text-xs font-extrabold px-3 py-1.5 rounded-xl hover:bg-sky-50 transition cursor-pointer"
+                        >
+                            فتح المحاكي 📦
+                        </button>
+                    </div>
+
                     {medicines.length === 0 ? (
                         <div className="rounded-3xl border border-sky-200 bg-slate-50 p-8 text-center text-slate-700">
                             <p className="text-lg font-medium text-slate-900">لا يوجد أدوية حالياً</p>

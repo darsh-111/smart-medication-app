@@ -57,6 +57,7 @@ export default function Choice() {
         <div className="grid gap-4 md:grid-cols-2">
           <button
             type="button"
+            onClick={() => navigate('/smart-box')}
             className="w-full rounded-3xl bg-sky-600 px-5 py-4 text-sm font-display font-semibold text-white transition hover:bg-sky-700"
           >
             الاستخدام مع صندوق الأدوية
