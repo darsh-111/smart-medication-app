@@ -21,6 +21,7 @@ export default function CaregiverDashboard() {
   const [logs, setLogs] = useState<AdherenceLog[]>([]);
   const [adherenceRate, setAdherenceRate] = useState(78); // نسبة افتراضية
   const [hasEmergency, setHasEmergency] = useState(true); // تنبيه طارئ افتراضي لعرض الفكرة
+  const [prescription, setPrescription] = useState<any | null>(null);
 
   useEffect(() => {
     // تحميل السجل الحقيقي من LocalStorage لو موجود، أو استخدام الداتا المحاكاة
@@ -41,6 +42,17 @@ export default function CaregiverDashboard() {
       const completedCount = parsed.filter(l => l.status !== 'pending').length;
       if (completedCount > 0) {
         setAdherenceRate(Math.round((takenCount / completedCount) * 100));
+      }
+    }
+
+    // جلب الروشتة النشطة أو أحدث روشتة من التاريخ للمريض (الحاج أحمد محمد - ID: 1)
+    const activePresc = localStorage.getItem('smartMedicationActivePrescription');
+    if (activePresc) {
+      setPrescription(JSON.parse(activePresc));
+    } else {
+      const history = JSON.parse(localStorage.getItem('smartMedicationPrescriptions_1') || '[]');
+      if (history.length > 0) {
+        setPrescription(history[history.length - 1]);
       }
     }
   }, []);
@@ -129,6 +141,46 @@ export default function CaregiverDashboard() {
               <div className="w-full h-full rounded-full border-4 border-rose-500 border-t-transparent animate-spin-slow" />
             </div>
           </div>
+
+          {/* كارت الروشتة والتشخيص الحالي */}
+          {prescription && (
+            <div className="p-4 bg-gradient-to-br from-emerald-50/40 to-white border border-emerald-100 rounded-2xl space-y-3 shadow-sm text-right">
+              <div className="flex justify-between items-center border-b border-emerald-100 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">📄</span>
+                  <h4 className="text-xs font-black text-slate-900">الروشتة والتشخيص النشط:</h4>
+                </div>
+                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                  د. أحمد سليمان
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="bg-emerald-50/30 p-2 rounded-xl border border-emerald-100/50">
+                  <p className="text-[9px] text-slate-500 font-bold">🩺 التشخيص الطبي:</p>
+                  <p className="text-xs font-extrabold text-emerald-950 mt-0.5">{prescription.diagnosis}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[9px] text-slate-400 font-bold mr-1">الخطة العلاجية المقررة:</p>
+                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                    {prescription.medications.map((med: any, index: number) => (
+                      <div key={index} className="p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-slate-800">💊 {med.name}</span>
+                        <span className="text-[9px] text-slate-500 font-medium bg-white px-2 py-0.5 rounded-md border border-slate-100">
+                          {med.dose} ({med.duration})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[8px] text-slate-400 text-left border-t border-slate-50 pt-2">
+                تاريخ الإصدار: {prescription.date}
+              </div>
+            </div>
+          )}
 
           {/* سجل التنبيهات والأحداث اليومية */}
           <div className="space-y-2">

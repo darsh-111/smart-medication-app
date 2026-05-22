@@ -29,10 +29,52 @@ function saveMedicines(medicines: Medicine[]) {
 export default function MedicineList() {
     const navigate = useNavigate();
     const [medicines, setMedicines] = useState(loadMedicines());
+    const [activePrescription, setActivePrescription] = useState<any | null>(null);
 
     useEffect(() => {
         setMedicines(loadMedicines());
+        
+        // جلب الروشتة المرسلة من الطبيب لو موجودة
+        const savedPrescription = localStorage.getItem('smartMedicationActivePrescription');
+        if (savedPrescription) {
+            setActivePrescription(JSON.parse(savedPrescription));
+        }
     }, []);
+
+    const handleImportPrescription = () => {
+        if (!activePrescription) return;
+
+        const existing = loadMedicines();
+        
+        // تحويل أدوية الطبيب لجدول منبهات المريض الأسبوعية
+        const newMeds = activePrescription.medications.map((m: any) => {
+            return {
+                name: m.name,
+                dose: m.dose,
+                notes: `روشتة من الطبيب المعالج: ${m.notes || 'بدون ملاحظات'}`,
+                image: undefined,
+                schedule: {
+                    saturday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                    sunday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                    monday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                    tuesday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                    wednesday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                    thursday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                    friday: { firstTime: m.times.morning ? '08:00' : '', secondTime: m.times.afternoon ? '14:00' : '', thirdTime: m.times.evening ? '20:00' : '', repeat: true },
+                }
+            };
+        });
+
+        const updatedMedicines = [...existing, ...newMeds];
+        saveMedicines(updatedMedicines);
+        setMedicines(updatedMedicines);
+
+        // مسح الروشتة النشطة بعد الاستيراد
+        localStorage.removeItem('smartMedicationActivePrescription');
+        setActivePrescription(null);
+
+        alert('تم تفعيل جميع أدوية الروشتة كمنبهات وتوصيلها بالصندوق الذكي بنجاح! ⏰✨');
+    };
 
     const handleDelete = (index: number) => {
         if (!window.confirm('هل تريد حذف هذا الدواء؟')) return;
@@ -84,6 +126,46 @@ export default function MedicineList() {
                             فتح المحاكي 📦
                         </button>
                     </div>
+
+                    {/* عرض الروشتة الجديدة المرسلة من الطبيب لو موجودة */}
+                    {activePrescription && (
+                        <div className="rounded-3xl border-2 border-emerald-500 bg-emerald-50/90 p-5 shadow-[0_8px_24px_rgba(16,185,129,0.15)] text-right space-y-3 animate-fade-in relative overflow-hidden">
+                            <div className="flex justify-between items-start">
+                                <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-2.5 py-0.5 rounded-full">روشتة رقمية جديدة 📄</span>
+                                <button
+                                    onClick={() => {
+                                        localStorage.removeItem('smartMedicationActivePrescription');
+                                        setActivePrescription(null);
+                                    }}
+                                    className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                    تجاهل ✕
+                                </button>
+                            </div>
+                            <div className="space-y-1.5">
+                                <h3 className="text-xs font-bold text-slate-900">المرسل: {activePrescription.doctorName} ({activePrescription.date})</h3>
+                                <p className="text-[11px] text-emerald-950 font-bold bg-emerald-100/50 p-2 rounded-xl border border-emerald-200/30">
+                                    🩺 التشخيص: {activePrescription.diagnosis}
+                                </p>
+                                <div className="pt-1.5 space-y-1">
+                                    <p className="text-[9px] text-slate-500 font-bold mr-1">الأدوية الموصوفة:</p>
+                                    {activePrescription.medications.map((m: any, idx: number) => (
+                                        <div key={idx} className="text-[11px] text-slate-700 flex justify-between bg-white/70 p-2 rounded-xl border border-emerald-100/30">
+                                            <span className="font-bold">💊 {m.name}</span>
+                                            <span className="font-extrabold text-[10px] text-emerald-800">{m.dose} ({m.duration})</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleImportPrescription}
+                                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-[0_4px_12px_rgba(16,185,129,0.2)] transition active:scale-[0.99] cursor-pointer"
+                            >
+                                تفعيل الروشتة وتحويلها لمنبهات بالصندوق ⏰✅
+                            </button>
+                        </div>
+                    )}
 
                     {medicines.length === 0 ? (
                         <div className="rounded-3xl border border-sky-200 bg-slate-50 p-8 text-center text-slate-700">

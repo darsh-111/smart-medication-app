@@ -9,6 +9,15 @@ type PrescribedMedication = {
   duration: string;
 };
 
+type Prescription = {
+  id: string;
+  patientId: string;
+  diagnosis: string;
+  medications: PrescribedMedication[];
+  doctorName: string;
+  date: string;
+};
+
 type Patient = {
   id: string;
   name: string;
@@ -22,37 +31,67 @@ const mockPatients: Patient[] = [
   { id: '2', name: 'الحاجة فاطمة علي', age: 72, condition: 'قصور في الشريان التاجي', phone: '01298765432' },
 ];
 
-const PRESCRIPTION_KEY = 'smartMedicationPrescriptions';
-const MEDICINES_KEY = 'smartMedicationMedicines';
+const ACTIVE_PRESCRIPTION_KEY = 'smartMedicationActivePrescription';
+const COMPLETED_PRESCRIPTIONS_KEY = 'smartMedicationPrescriptions';
+const LOGS_KEY = 'smartMedicationLogs';
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
   const [patients] = useState<Patient[]>(mockPatients);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
 
-  // فورم الدواء الجديد
+  // حقول الروشتة الحالية
+  const [diagnosis, setDiagnosis] = useState('');
+  const [medicationsTemp, setMedicationsTemp] = useState<PrescribedMedication[]>([]);
+
+  // حقول إضافة دواء جديد مؤقت للروشتة
+  const [showAddMedForm, setShowAddMedForm] = useState(false);
   const [medName, setMedName] = useState('');
   const [medDose, setMedDose] = useState('');
   const [medNotes, setMedNotes] = useState('');
   const [medDuration, setMedDuration] = useState('30 يوم');
   const [times, setTimes] = useState({ morning: true, afternoon: false, evening: true });
 
-  const [prescribedList, setPrescribedList] = useState<PrescribedMedication[]>([]);
+  // سجل التزام المريض المعروض للطبيب
+  const [patientLogs, setPatientLogs] = useState<any[]>([]);
+  const [patientCompliance, setPatientCompliance] = useState(78);
 
-  // تحميل الروشتات السابقة للمريض المحدد
+  // حالات الصلاحيات والامتيازات النشطة للطبيب (مطلوبة لتقديم فكرة المشروع التفاعلي وعرض الصلاحيات)
+  const [syncSmartBox, setSyncSmartBox] = useState(true);
+  const [alertCaregiver, setAlertCaregiver] = useState(true);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => {
+      setToastMsg(null);
+    }, 2500);
+  };
+
+  // جلب سجلات التزام المريض عند اختياره لتسهيل متابعة الطبيب
   useEffect(() => {
     if (selectedPatient) {
-      const saved = localStorage.getItem(`${PRESCRIPTION_KEY}_${selectedPatient.id}`);
-      if (saved) {
-        setPrescribedList(JSON.parse(saved));
+      const savedLogs = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+      setPatientLogs(savedLogs);
+
+      const takenCount = savedLogs.filter((l: any) => l.status === 'taken').length;
+      const completedCount = savedLogs.filter((l: any) => l.status !== 'pending').length;
+      if (completedCount > 0) {
+        setPatientCompliance(Math.round((takenCount / completedCount) * 100));
       } else {
-        setPrescribedList([]);
+        setPatientCompliance(78); // قيمة افتراضية
       }
+
+      // تصفير بيانات الروشتة الجديدة عند تغيير المريض
+      setDiagnosis('');
+      setMedicationsTemp([]);
     }
   }, [selectedPatient]);
 
-  const handleAddMedication = () => {
+  // إضافة دواء مؤقت للروشتة قيد الإنشاء
+  const handleAddMedicationTemp = () => {
     if (!medName || !medDose) return;
 
     const newMed: PrescribedMedication = {
@@ -63,42 +102,69 @@ export default function DoctorDashboard() {
       duration: medDuration,
     };
 
-    const updatedList = [...prescribedList, newMed];
-    setPrescribedList(updatedList);
+    setMedicationsTemp([...medicationsTemp, newMed]);
     
-    // حفظ في قاعدة الروشتات للمريض
-    if (selectedPatient) {
-      localStorage.setItem(`${PRESCRIPTION_KEY}_${selectedPatient.id}`, JSON.stringify(updatedList));
-      
-      // كحركة ذكية تفاعلية للفرونت إند:
-      // بنضيف الدواء برضه في جدول أدوية المريض الموحد عشان يبان مباشرة في حسابه
-      const currentPatientMeds = JSON.parse(localStorage.getItem(MEDICINES_KEY) || '[]');
-      
-      // تحويل مواعيد الطبيب إلى هيكل مواعيد الأدوية الأسبوعي
-      const newPatientMed = {
-        name: medName,
-        dose: medDose,
-        notes: `روشتة من الطبيب: ${medNotes || 'بدون ملاحظات'}`,
-        schedule: {
-          saturday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-          sunday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-          monday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-          tuesday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-          wednesday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-          thursday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-          friday: { firstTime: times.morning ? '08:00' : '', secondTime: times.afternoon ? '14:00' : '', thirdTime: times.evening ? '20:00' : '', repeat: true },
-        }
-      };
-      
-      localStorage.setItem(MEDICINES_KEY, JSON.stringify([...currentPatientMeds, newPatientMed]));
-    }
-
-    // إعادة تصفير الفورم
+    // تصفير فورم الدواء
     setMedName('');
     setMedDose('');
     setMedNotes('');
-    setShowAddForm(false);
-    alert('تم إرسال الجرعة وإضافتها لروشتة المريض بنجاح! 🚀');
+    setShowAddMedForm(false);
+  };
+
+  // إزالة دواء من الروشتة المؤقتة
+  const handleRemoveMedTemp = (indexToRemove: number) => {
+    setMedicationsTemp(medicationsTemp.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  // إصدار وإرسال الروشتة بالكامل للمريض
+  const handleSendFullPrescription = () => {
+    if (!selectedPatient) return;
+    if (!diagnosis) {
+      showToast('من فضلك أدخل التشخيص الطبي أولاً! ⚠️');
+      return;
+    }
+    if (medicationsTemp.length === 0) {
+      showToast('يجب إضافة دواء واحد على الأقل! ⚠️');
+      return;
+    }
+
+    const newPrescription: Prescription = {
+      id: String(Date.now()),
+      patientId: selectedPatient.id,
+      diagnosis,
+      medications: medicationsTemp,
+      doctorName: 'د. أحمد سليمان',
+      date: new Date().toLocaleDateString('ar-EG'),
+    };
+
+    // 1. حفظ في قاعدة الروشتات الفعالة للمريض (لو المزامنة مفعلة)
+    if (syncSmartBox) {
+      localStorage.setItem(ACTIVE_PRESCRIPTION_KEY, JSON.stringify(newPrescription));
+    } else {
+      localStorage.removeItem(ACTIVE_PRESCRIPTION_KEY); // إزالة الروشتة الفعالة كأنها لم تُرسل
+    }
+
+    // 2. إضافتها لسجل الروشتات القديمة للمريض التاريخي
+    const history = JSON.parse(localStorage.getItem(`${COMPLETED_PRESCRIPTIONS_KEY}_${selectedPatient.id}`) || '[]');
+    localStorage.setItem(`${COMPLETED_PRESCRIPTIONS_KEY}_${selectedPatient.id}`, JSON.stringify([...history, newPrescription]));
+
+    // صياغة رسالة النجاح التفاعلية بناءً على الصلاحيات والتوجيهات
+    let messageContent = `تم إصدار الروشتة الطبية بالكامل وإرسالها بنجاح للمريض (${selectedPatient.name})!`;
+    if (syncSmartBox) {
+      messageContent += `\n\n📦 [مُفعل] تمت مزامنة المواعيد والجرعات تلقائياً مع منبهات الصندوق الذكي للمريض.`;
+    } else {
+      messageContent += `\n\n⚠️ [مُعطل] لم تتم مزامنة الجرعات مع الصندوق الذكي (صلاحية المزامنة غير مفعلة).`;
+    }
+    if (alertCaregiver) {
+      messageContent += `\n\n🔔 [مُفعل] تم إرسال إشعار فوري وتحديث التنبيهات في لوحة تحكم المتابع من الأهل.`;
+    }
+
+    setSuccessMsg(messageContent);
+    setShowSuccessModal(true);
+
+    // تصفير الشاشة
+    setDiagnosis('');
+    setMedicationsTemp([]);
   };
 
   const handleLogout = () => {
@@ -154,169 +220,327 @@ export default function DoctorDashboard() {
                   </button>
                 ))}
               </div>
+
+              {/* بطاقة الصلاحيات والامتيازات النشطة للطبيب */}
+              <div className="p-4 border border-emerald-100 bg-emerald-50/20 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 border-b border-emerald-100 pb-2">
+                  <span className="text-base">🛡️</span>
+                  <h4 className="text-xs font-black text-emerald-950">صلاحيات الطبيب وتراخيص التحكم:</h4>
+                </div>
+                
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5 text-right pl-2">
+                      <h5 className="text-[11px] font-bold text-slate-800">إضافة وتعديل الروشتات الرقمية</h5>
+                      <p className="text-[9px] text-slate-500">صياغة التشخيص الدقيق وإعداد جدول الجرعات العلاجية.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked disabled className="sr-only peer" />
+                      <div className="w-8 h-4 bg-emerald-600 rounded-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all after:translate-x-full opacity-80" />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5 text-right pl-2">
+                      <h5 className="text-[11px] font-bold text-slate-800">مزامنة الصندوق الذكي تلقائياً</h5>
+                      <p className="text-[9px] text-slate-500">مزامنة مواعيد وتوقيتات الجرعات مع أدراج الصندوق الذكي.</p>
+                    </div>
+                    <div className="relative">
+                      <input
+                        id="toggle-sync"
+                        type="checkbox"
+                        checked={syncSmartBox}
+                        onChange={(e) => {
+                          setSyncSmartBox(e.target.checked);
+                          showToast(e.target.checked ? "تم تفعيل مزامنة الصندوق الذكي تلقائياً 📦" : "تم تعطيل مزامنة الصندوق الذكي ⚠️");
+                        }}
+                        className="sr-only peer"
+                      />
+                      <label htmlFor="toggle-sync" className="block w-8 h-4 bg-slate-200 rounded-full cursor-pointer peer-checked:bg-emerald-600 transition-colors duration-200 relative">
+                        <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${syncSmartBox ? 'translate-x-4' : ''}`} />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5 text-right pl-2">
+                      <h5 className="text-[11px] font-bold text-slate-800">إرسال وتحديث لوحة المتابع</h5>
+                      <p className="text-[9px] text-slate-500">إخطار المتابع من العائلة وتحديث السجل فوراُ عند تغيير الروشتة.</p>
+                    </div>
+                    <div className="relative">
+                      <input
+                        id="toggle-caregiver"
+                        type="checkbox"
+                        checked={alertCaregiver}
+                        onChange={(e) => {
+                          setAlertCaregiver(e.target.checked);
+                          showToast(e.target.checked ? "تم تفعيل إشعارات المتابع الفورية 🔔" : "تم تعطيل إشعارات المتابع الفورية ⚠️");
+                        }}
+                        className="sr-only peer"
+                      />
+                      <label htmlFor="toggle-caregiver" className="block w-8 h-4 bg-slate-200 rounded-full cursor-pointer peer-checked:bg-emerald-600 transition-colors duration-200 relative">
+                        <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${alertCaregiver ? 'translate-x-4' : ''}`} />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5 text-right pl-2">
+                      <h5 className="text-[11px] font-bold text-slate-800">مراقبة الالتزام وسجل الصندوق</h5>
+                      <p className="text-[9px] text-slate-500">الاطلاع المباشر على مؤشرات وفعالية التزام المريض بالمنزل.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked disabled className="sr-only peer" />
+                      <div className="w-8 h-4 bg-emerald-600 rounded-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all after:translate-x-full opacity-80" />
+                    </label>
+                  </div>
+                </div>
+              </div>
             </>
           ) : (
             <div className="space-y-4">
-              {/* كارت المريض المختار */}
-              <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-2xl relative">
+              
+              {/* كارت معلومات المريض المختار ونسبة التزامه الحالية */}
+              <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-2xl relative flex justify-between items-center">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-emerald-950">{selectedPatient.name}</h3>
+                  <p className="text-[9px] text-emerald-900/80">التشخيص الحالي: {selectedPatient.condition}</p>
+                  <p className="text-[9px] text-slate-500">نسبة التزام المريض بالمنزل: <span className="font-extrabold text-emerald-700">{patientCompliance}%</span></p>
+                </div>
                 <button
                   onClick={() => setSelectedPatient(null)}
-                  className="absolute top-2 left-2 text-[10px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                  className="text-[9px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
                 >
-                  تغيير المريض
+                  تغيير
                 </button>
-                <h3 className="text-sm font-black text-emerald-950">{selectedPatient.name}</h3>
-                <p className="text-[10px] text-emerald-900/80 mt-1">الحالة: {selectedPatient.condition}</p>
               </div>
 
-              {/* الروشتة الحالية */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-slate-400">الروشتة الرقمية الحالية:</h4>
-                  {!showAddForm && (
-                    <button
-                      onClick={() => setShowAddForm(true)}
-                      className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl transition cursor-pointer shadow-sm"
-                    >
-                      + إضافة دواء
-                    </button>
-                  )}
+              {/* باني الروشتة المتكامل */}
+              <div className="space-y-3 p-4 border border-slate-200 rounded-2xl bg-slate-50/30">
+                <h4 className="text-xs font-black text-slate-700">📄 نموذج كتابة الروشتة الطبية الكاملة:</h4>
+                
+                {/* حقل التشخيص الطبي */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600 block">التشخيص الطبي الحالي:</label>
+                  <input
+                    type="text"
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                    placeholder="مثال: التهاب حاد في الصدر والشعب الهوائية"
+                    className="w-full text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-emerald-400"
+                  />
                 </div>
 
-                {showAddForm ? (
-                  // فورم إضافة دواء للروشتة
-                  <div className="p-4 border-2 border-emerald-200 bg-slate-50 rounded-2xl space-y-3">
-                    <h5 className="text-xs font-bold text-emerald-800">وصف دواء جديد</h5>
-                    
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-600 block">اسم الدواء</label>
-                      <input
-                        type="text"
-                        placeholder="مثال: كونكور 5 مجم"
-                        value={medName}
-                        onChange={(e) => setMedName(e.target.value)}
-                        className="w-full text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-emerald-400"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-600 block">الجرعة</label>
-                      <input
-                        type="text"
-                        placeholder="مثال: قرص واحد"
-                        value={medDose}
-                        onChange={(e) => setMedDose(e.target.value)}
-                        className="w-full text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-emerald-400"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-600 block">مواعيد الجرعة (تنبيهات اليوم)</label>
-                      <div className="flex gap-4 pt-1">
-                        <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={times.morning}
-                            onChange={(e) => setTimes({ ...times, morning: e.target.checked })}
-                            className="accent-emerald-600"
-                          />
-                          <span>صباحاً</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={times.afternoon}
-                            onChange={(e) => setTimes({ ...times, afternoon: e.target.checked })}
-                            className="accent-emerald-600"
-                          />
-                          <span>ظهراً</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={times.evening}
-                            onChange={(e) => setTimes({ ...times, evening: e.target.checked })}
-                            className="accent-emerald-600"
-                          />
-                          <span>مساءً</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-600 block">مدة العلاج</label>
-                        <input
-                          type="text"
-                          value={medDuration}
-                          onChange={(e) => setMedDuration(e.target.value)}
-                          className="w-full text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-600 block">ملاحظات (اختياري)</label>
-                        <input
-                          type="text"
-                          placeholder="مثال: قبل الأكل"
-                          value={medNotes}
-                          onChange={(e) => setMedNotes(e.target.value)}
-                          className="w-full text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
+                {/* قائمة الأدوية المؤقتة في الروشتة */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-slate-500">الأدوية الموصوفة ({medicationsTemp.length}):</span>
+                    {!showAddMedForm && (
                       <button
-                        type="button"
-                        onClick={handleAddMedication}
-                        className="flex-grow py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition cursor-pointer"
+                        onClick={() => setShowAddMedForm(true)}
+                        className="text-[10px] font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition"
                       >
-                        إرسال للمريض 🚀
+                        + أضف دواء
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddForm(false)}
-                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-medium hover:bg-slate-300 transition cursor-pointer"
-                      >
-                        إلغاء
-                      </button>
-                    </div>
+                    )}
                   </div>
-                ) : null}
 
-                {/* عرض الأدوية الموصوفة سابقاً */}
-                <div className="space-y-2 mt-2">
-                  {prescribedList.length === 0 ? (
-                    <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border border-slate-100">
-                      لا يوجد أدوية موصوفة حالياً لهذا المريض.
-                    </p>
-                  ) : (
-                    prescribedList.map((med, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                        <div className="text-right">
-                          <h6 className="text-xs font-bold text-slate-900">{med.name}</h6>
-                          <p className="text-[10px] text-slate-500">
-                            الجرعة: {med.dose} | المدة: {med.duration}
-                          </p>
-                          <p className="text-[9px] text-emerald-600 font-semibold mt-0.5">
-                            المواعيد: {[
+                  {showAddMedForm && (
+                    // فورم دواء داخل الروشتة
+                    <div className="p-3 border-2 border-dashed border-emerald-200 bg-white rounded-xl space-y-2 text-right">
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-bold text-slate-500 block">اسم الدواء</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: كونكور 5 مجم"
+                          value={medName}
+                          onChange={(e) => setMedName(e.target.value)}
+                          className="w-full text-[11px] rounded-lg border border-slate-200 px-2.5 py-1.5 outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-bold text-slate-500 block">الجرعة</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: قرص واحد"
+                          value={medDose}
+                          onChange={(e) => setMedDose(e.target.value)}
+                          className="w-full text-[11px] rounded-lg border border-slate-200 px-2.5 py-1.5 outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-bold text-slate-500 block">المواعيد اليومية</label>
+                        <div className="flex gap-3 pt-0.5">
+                          <label className="flex items-center gap-1 text-[10px] text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={times.morning}
+                              onChange={(e) => setTimes({ ...times, morning: e.target.checked })}
+                              className="accent-emerald-600"
+                            />
+                            <span>صباحاً</span>
+                          </label>
+                          <label className="flex items-center gap-1 text-[10px] text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={times.afternoon}
+                              onChange={(e) => setTimes({ ...times, afternoon: e.target.checked })}
+                              className="accent-emerald-600"
+                            />
+                            <span>ظهراً</span>
+                          </label>
+                          <label className="flex items-center gap-1 text-[10px] text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={times.evening}
+                              onChange={(e) => setTimes({ ...times, evening: e.target.checked })}
+                              className="accent-emerald-600"
+                            />
+                            <span>مساءً</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] font-bold text-slate-500 block">المدة</label>
+                          <input
+                            type="text"
+                            value={medDuration}
+                            onChange={(e) => setMedDuration(e.target.value)}
+                            className="w-full text-[11px] rounded-lg border border-slate-200 px-2.5 py-1.5 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] font-bold text-slate-500 block">ملاحظات</label>
+                          <input
+                            type="text"
+                            placeholder="مثال: قبل الأكل"
+                            value={medNotes}
+                            onChange={(e) => setMedNotes(e.target.value)}
+                            className="w-full text-[11px] rounded-lg border border-slate-200 px-2.5 py-1.5 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-1.5">
+                        <button
+                          type="button"
+                          onClick={handleAddMedicationTemp}
+                          className="flex-grow py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition"
+                        >
+                          أضف للروشتة
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddMedForm(false)}
+                          className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-[10px] font-medium"
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* قائمة الأدوية المضافة مؤقتاً */}
+                  <div className="space-y-1.5">
+                    {medicationsTemp.length === 0 ? (
+                      <p className="text-[10px] text-slate-400 text-center py-4 bg-slate-100 rounded-xl">
+                        لم يتم إضافة أدوية في الروشتة بعد.
+                      </p>
+                    ) : (
+                      medicationsTemp.map((med, index) => (
+                        <div key={index} className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                          <div className="text-right space-y-0.5">
+                            <h5 className="text-[11px] font-bold text-slate-900">{med.name}</h5>
+                            <p className="text-[9px] text-slate-500">الجرعة: {med.dose} | المواعيد: {[
                               med.times.morning && 'صباحاً',
                               med.times.afternoon && 'ظهراً',
                               med.times.evening && 'مساءً'
-                            ].filter(Boolean).join(' - ')}
-                          </p>
-                          {med.notes && <p className="text-[9px] text-slate-400">({med.notes})</p>}
+                            ].filter(Boolean).join(' - ')}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMedTemp(index)}
+                            className="text-[9px] text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded-lg"
+                          >
+                            حذف ✕
+                          </button>
                         </div>
-                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">مرسل</span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* زر إصدار الروشتة وإرسالها بالكامل للمريض */}
+                <button
+                  type="button"
+                  onClick={handleSendFullPrescription}
+                  className="w-full py-3 mt-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                >
+                  إصدار وإرسال الروشتة للمريض 📄🚀
+                </button>
+              </div>
+
+              {/* سجل التزام المريض التفصيلي للطبيب */}
+              <div className="space-y-2 p-4 border border-slate-200 rounded-2xl bg-slate-50/20">
+                <h4 className="text-xs font-bold text-slate-400">سجل التزام المريض الفعلي بالمنزل (أخر العمليات):</h4>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {patientLogs.length === 0 ? (
+                    <p className="text-[10px] text-slate-400 text-center py-4 bg-slate-50 rounded-xl">
+                      لا توجد سجلات التزام سابقة للمريض بعد.
+                    </p>
+                  ) : (
+                    patientLogs.map((log: any, idx: number) => (
+                      <div key={idx} className="p-2 bg-white border border-slate-100 rounded-lg flex items-center justify-between text-[10px]">
+                        <span className="font-semibold">{log.medName}</span>
+                        <span className={`px-2 py-0.5 rounded-full font-bold ${
+                          log.status === 'taken' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {log.status === 'taken' ? 'تم أخذها' : 'تم إهمالها'}
+                        </span>
                       </div>
                     ))
                   )}
                 </div>
               </div>
+
             </div>
           )}
 
         </div>
+
+        {/* توست التنبيهات الجمالي التلقائي */}
+        {toastMsg && (
+          <div className="absolute top-16 inset-x-6 z-50 p-2.5 bg-slate-900/95 text-white rounded-xl text-center text-[10px] font-bold shadow-lg animate-fade-in flex items-center justify-center gap-1.5 border border-slate-800">
+            <span>🛡️</span>
+            <span>{toastMsg}</span>
+          </div>
+        )}
+
+        {/* 🏆 مودال النجاح المخصص الفخم */}
+        {showSuccessModal && (
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-[85%] border-2 border-emerald-500 shadow-2xl space-y-4 text-center">
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                <span className="text-xl text-emerald-600">✓</span>
+              </div>
+              <h3 className="text-sm font-black text-slate-900">تمت العملية بنجاح!</h3>
+              <p className="text-[10px] text-slate-600 whitespace-pre-line leading-relaxed text-right border-t border-b border-slate-100 py-3">
+                {successMsg}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md active:scale-98"
+              >
+                حسناً، فهمت 👍
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* شريط الهوم السفلي المحاكي للموبايل */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-12.5 h-2.5 rounded-full border border-slate-200 shrink-0" />
