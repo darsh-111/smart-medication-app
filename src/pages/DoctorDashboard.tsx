@@ -32,7 +32,6 @@ const mockPatients: Patient[] = [
   { id: '2', name: 'الحاجة فاطمة علي', age: 72, condition: 'قصور في الشريان التاجي', phone: '01298765432' },
 ];
 
-const ACTIVE_PRESCRIPTION_KEY = 'smartMedicationActivePrescription';
 const COMPLETED_PRESCRIPTIONS_KEY = 'smartMedicationPrescriptions';
 const LOGS_KEY = 'smartMedicationLogs';
 
