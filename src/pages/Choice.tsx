@@ -23,52 +23,42 @@ export default function Choice() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-4xl border border-sky-200 bg-slate-50 p-6 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.12)]">
+          <button
+            type="button"
+            onClick={() => navigate('/smart-box')}
+            className="text-right w-full rounded-4xl border-2 border-sky-200 bg-slate-50 p-6 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.12)] transition-all hover:-translate-y-1 hover:border-sky-400 hover:bg-sky-50 hover:shadow-md cursor-pointer"
+          >
             <div className="mb-4 flex items-center gap-3">
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-sky-100 text-xl">📦</span>
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-sky-100 text-xl shadow-sm">📦</span>
               <div>
                 <h2 className="text-xl font-display font-semibold text-slate-900">مع صندوق الأدوية</h2>
                 <p className="text-sm text-slate-600 mt-1">أفضل تجربة ذكية مع تنبيهات وتنظيم تلقائي للجرعات.</p>
               </div>
             </div>
-            <ul className="space-y-3 text-sm text-slate-600 ">
+            <ul className="space-y-3 text-sm text-slate-600 text-right">
               <li>• مسح الأدوية تلقائيًا</li>
               <li>• تنبيهات الجرعات والمواعيد</li>
               <li>• سجل المستخدم والدواء الذكي</li>
             </ul>
-          </div>
-
-          <div className="rounded-4xl border border-sky-200 bg-slate-50 p-6 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.12)]">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-100 text-xl">⚙️</span>
-              <div>
-                <h2 className="text-xl font-display font-semibold text-slate-900">بدون صندوق الأدوية</h2>
-                <p className="text-sm text-slate-600 mt-1">طريقة يدوية سريعة للتحكم في الأدوية بدون جهاز إضافي.</p>
-              </div>
-            </div>
-            <ul className="space-y-3 text-sm text-slate-600">
-              <li>• إضافة الدواء يدويًا</li>
-              <li>• تذكير المواعيد بسلاسة</li>
-              <li>• مرونة كاملـة في الاستخدام</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => navigate('/smart-box')}
-            className="w-full rounded-3xl bg-sky-600 px-5 py-4 text-sm font-display font-semibold text-white transition hover:bg-sky-700"
-          >
-            الاستخدام مع صندوق الأدوية
           </button>
 
           <button
             type="button"
             onClick={() => navigate('/medicines')}
-            className="w-full rounded-3xl border border-sky-200 bg-slate-100 px-5 py-4 text-sm font-display font-semibold text-slate-900 transition hover:border-sky-300 hover:bg-slate-200"
+            className="text-right w-full rounded-4xl border-2 border-sky-200 bg-slate-50 p-6 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.12)] transition-all hover:-translate-y-1 hover:border-sky-400 hover:bg-slate-100 hover:shadow-md cursor-pointer"
           >
-            الاستخدام بدون صندوق الأدوية
+            <div className="mb-4 flex items-center gap-3">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-200 text-xl shadow-sm">⚙️</span>
+              <div>
+                <h2 className="text-xl font-display font-semibold text-slate-900">بدون صندوق الأدوية</h2>
+                <p className="text-sm text-slate-600 mt-1">طريقة يدوية سريعة للتحكم في الأدوية بدون جهاز إضافي.</p>
+              </div>
+            </div>
+            <ul className="space-y-3 text-sm text-slate-600 text-right">
+              <li>• إضافة الدواء يدويًا</li>
+              <li>• تذكير المواعيد بسلاسة</li>
+              <li>• مرونة كاملـة في الاستخدام</li>
+            </ul>
           </button>
         </div>
       </div>
