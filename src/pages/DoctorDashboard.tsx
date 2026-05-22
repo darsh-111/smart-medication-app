@@ -16,6 +16,7 @@ type Prescription = {
   medications: PrescribedMedication[];
   doctorName: string;
   date: string;
+  status?: 'pending' | 'imported';
 };
 
 type Patient = {
@@ -37,8 +38,22 @@ const LOGS_KEY = 'smartMedicationLogs';
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
-  const [patients] = useState<Patient[]>(mockPatients);
+
+  // تحميل قائمة المرضى من localStorage أو استخدام المجموعات الوهمية
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    const saved = localStorage.getItem('smartMedicationPatients');
+    if (saved) return JSON.parse(saved);
+    localStorage.setItem('smartMedicationPatients', JSON.stringify(mockPatients));
+    return mockPatients;
+  });
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  // حقول إضافة مريض جديد
+  const [showAddPatientForm, setShowAddPatientForm] = useState(false);
+  const [newPatName, setNewPatName] = useState('');
+  const [newPatAge, setNewPatAge] = useState('');
+  const [newPatPhone, setNewPatPhone] = useState('');
+  const [newPatCondition, setNewPatCondition] = useState('');
 
   // حقول الروشتة الحالية
   const [diagnosis, setDiagnosis] = useState('');
@@ -55,13 +70,41 @@ export default function DoctorDashboard() {
   // سجل التزام المريض المعروض للطبيب
   const [patientLogs, setPatientLogs] = useState<any[]>([]);
   const [patientCompliance, setPatientCompliance] = useState(78);
+  const [prescriptionHistory, setPrescriptionHistory] = useState<Prescription[]>([]);
 
   // حالات الصلاحيات والامتيازات النشطة للطبيب (مطلوبة لتقديم فكرة المشروع التفاعلي وعرض الصلاحيات)
-  const [syncSmartBox, setSyncSmartBox] = useState(true);
-  const [alertCaregiver, setAlertCaregiver] = useState(true);
+  const alertCaregiver = true;
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // إضافة مريض جديد
+  const handleAddPatient = () => {
+    if (!newPatName || !newPatAge || !newPatPhone || !newPatCondition) {
+      showToast('الرجاء تعبئة جميع الحقول! ⚠️');
+      return;
+    }
+
+    const newPatient: Patient = {
+      id: String(Date.now()),
+      name: newPatName,
+      age: Number(newPatAge),
+      condition: newPatCondition,
+      phone: newPatPhone,
+    };
+
+    const updated = [...patients, newPatient];
+    setPatients(updated);
+    localStorage.setItem('smartMedicationPatients', JSON.stringify(updated));
+
+    // تصفير النموذج
+    setNewPatName('');
+    setNewPatAge('');
+    setNewPatPhone('');
+    setNewPatCondition('');
+    setShowAddPatientForm(false);
+    showToast('تم إضافة المريض الجديد بنجاح! 🎉');
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -83,6 +126,10 @@ export default function DoctorDashboard() {
       } else {
         setPatientCompliance(78); // قيمة افتراضية
       }
+
+      // جلب سجل الروشتات والتشخيصات السابقة
+      const history = JSON.parse(localStorage.getItem(`${COMPLETED_PRESCRIPTIONS_KEY}_${selectedPatient.id}`) || '[]');
+      setPrescriptionHistory(history);
 
       // تصفير بيانات الروشتة الجديدة عند تغيير المريض
       setDiagnosis('');
@@ -135,28 +182,24 @@ export default function DoctorDashboard() {
       medications: medicationsTemp,
       doctorName: 'د. أحمد سليمان',
       date: new Date().toLocaleDateString('ar-EG'),
+      status: 'pending',
     };
 
-    // 1. حفظ في قاعدة الروشتات الفعالة للمريض (لو المزامنة مفعلة)
-    if (syncSmartBox) {
-      localStorage.setItem(ACTIVE_PRESCRIPTION_KEY, JSON.stringify(newPrescription));
-    } else {
-      localStorage.removeItem(ACTIVE_PRESCRIPTION_KEY); // إزالة الروشتة الفعالة كأنها لم تُرسل
-    }
+    // 1. حفظ في قاعدة الروشتات الشاملة لكل الأطباء للمريض
+    const allPrescriptions = JSON.parse(localStorage.getItem('smartMedicationAllPrescriptions') || '[]');
+    localStorage.setItem('smartMedicationAllPrescriptions', JSON.stringify([...allPrescriptions, newPrescription]));
 
     // 2. إضافتها لسجل الروشتات القديمة للمريض التاريخي
     const history = JSON.parse(localStorage.getItem(`${COMPLETED_PRESCRIPTIONS_KEY}_${selectedPatient.id}`) || '[]');
-    localStorage.setItem(`${COMPLETED_PRESCRIPTIONS_KEY}_${selectedPatient.id}`, JSON.stringify([...history, newPrescription]));
+    const updatedHistory = [...history, newPrescription];
+    localStorage.setItem(`${COMPLETED_PRESCRIPTIONS_KEY}_${selectedPatient.id}`, JSON.stringify(updatedHistory));
+    setPrescriptionHistory(updatedHistory);
 
     // صياغة رسالة النجاح التفاعلية بناءً على الصلاحيات والتوجيهات
     let messageContent = `تم إصدار الروشتة الطبية بالكامل وإرسالها بنجاح للمريض (${selectedPatient.name})!`;
-    if (syncSmartBox) {
-      messageContent += `\n\n📦 [مُفعل] تمت مزامنة المواعيد والجرعات تلقائياً مع منبهات الصندوق الذكي للمريض.`;
-    } else {
-      messageContent += `\n\n⚠️ [مُعطل] لم تتم مزامنة الجرعات مع الصندوق الذكي (صلاحية المزامنة غير مفعلة).`;
-    }
+    messageContent += `\n\n🔒 تم إرسالها بأمان وبانتظار تأكيد واستيراد المريض إلى صندوقه الخاص.`;
     if (alertCaregiver) {
-      messageContent += `\n\n🔔 [مُفعل] تم إرسال إشعار فوري وتحديث التنبيهات في لوحة تحكم المتابع من الأهل.`;
+      messageContent += `\n\n🔔 [مُفعل] تم إرسال إشعار وتحديث التنبيهات في لوحة تحكم المتابع من الأهل.`;
     }
 
     setSuccessMsg(messageContent);
@@ -203,22 +246,103 @@ export default function DoctorDashboard() {
           
           {!selectedPatient ? (
             <>
-              {/* قائمة المرضى */}
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-400">اختر مريضاً لكتابة الروشتة ومتابعته:</p>
-                {patients.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedPatient(p)}
-                    className="w-full p-4 border border-slate-200 bg-slate-50/50 hover:bg-emerald-50/30 hover:border-emerald-300 rounded-2xl flex items-center justify-between text-right transition cursor-pointer"
-                  >
+              {/* قائمة المرضى وإضافة مريض جديد */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-bold text-slate-400">اختر مريضاً لكتابة الروشتة ومتابعته:</p>
+                  {!showAddPatientForm && (
+                    <button
+                      onClick={() => setShowAddPatientForm(true)}
+                      className="text-[10px] font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
+                    >
+                      + مريض جديد
+                    </button>
+                  )}
+                </div>
+
+                {showAddPatientForm && (
+                  <div className="p-4 border-2 border-dashed border-emerald-200 bg-white rounded-2xl space-y-3 text-right">
+                    <h4 className="text-xs font-black text-emerald-950">➕ تسجيل مريض جديد في العيادة:</h4>
+                    
                     <div className="space-y-1">
-                      <h4 className="text-sm font-bold text-slate-900">{p.name}</h4>
-                      <p className="text-[11px] text-slate-500">العمر: {p.age} سنة | {p.condition}</p>
+                      <label className="text-[10px] font-bold text-slate-500 block">اسم المريض:</label>
+                      <input
+                        type="text"
+                        value={newPatName}
+                        onChange={(e) => setNewPatName(e.target.value)}
+                        placeholder="مثال: الحاج محمود علي"
+                        className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-400"
+                      />
                     </div>
-                    <span className="text-emerald-500 text-lg">◀</span>
-                  </button>
-                ))}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 block">العمر (سنوات):</label>
+                        <input
+                          type="number"
+                          value={newPatAge}
+                          onChange={(e) => setNewPatAge(e.target.value)}
+                          placeholder="65"
+                          className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-400"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 block">رقم الهاتف:</label>
+                        <input
+                          type="text"
+                          value={newPatPhone}
+                          onChange={(e) => setNewPatPhone(e.target.value)}
+                          placeholder="010XXXXXXXX"
+                          className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 block">الحالة الصحية العامة:</label>
+                      <input
+                        type="text"
+                        value={newPatCondition}
+                        onChange={(e) => setNewPatCondition(e.target.value)}
+                        placeholder="مثال: ارتفاع ضغط الدم المزمن"
+                        className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-400"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={handleAddPatient}
+                        className="flex-grow py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold transition cursor-pointer"
+                      >
+                        حفظ المريض
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddPatientForm(false)}
+                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-medium hover:bg-slate-200 cursor-pointer"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {patients.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPatient(p)}
+                      className="w-full p-4 border border-slate-200 bg-slate-50/50 hover:bg-emerald-50/30 hover:border-emerald-300 rounded-2xl flex items-center justify-between text-right transition cursor-pointer"
+                    >
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-slate-900">{p.name}</h4>
+                        <p className="text-[11px] text-slate-500">العمر: {p.age} سنة | {p.condition}</p>
+                      </div>
+                      <span className="text-emerald-500 text-lg">◀</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* بطاقة الصلاحيات والامتيازات النشطة للطبيب */}
@@ -232,34 +356,9 @@ export default function DoctorDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5 text-right pl-2">
                       <h5 className="text-[11px] font-bold text-slate-800">إضافة وتعديل الروشتات الرقمية</h5>
-                      <p className="text-[9px] text-slate-500">صياغة التشخيص الدقيق وإعداد جدول الجرعات العلاجية.</p>
+                      <p className="text-[9px] text-slate-500">صياغة التشخيص الدقيق وإعداد جدول الجرعات العلاجية للمريض.</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked disabled className="sr-only peer" />
-                      <div className="w-8 h-4 bg-emerald-600 rounded-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all after:translate-x-full opacity-80" />
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 text-right pl-2">
-                      <h5 className="text-[11px] font-bold text-slate-800">مزامنة الصندوق الذكي تلقائياً</h5>
-                      <p className="text-[9px] text-slate-500">مزامنة مواعيد وتوقيتات الجرعات مع أدراج الصندوق الذكي.</p>
-                    </div>
-                    <div className="relative">
-                      <input
-                        id="toggle-sync"
-                        type="checkbox"
-                        checked={syncSmartBox}
-                        onChange={(e) => {
-                          setSyncSmartBox(e.target.checked);
-                          showToast(e.target.checked ? "تم تفعيل مزامنة الصندوق الذكي تلقائياً 📦" : "تم تعطيل مزامنة الصندوق الذكي ⚠️");
-                        }}
-                        className="sr-only peer"
-                      />
-                      <label htmlFor="toggle-sync" className="block w-8 h-4 bg-slate-200 rounded-full cursor-pointer peer-checked:bg-emerald-600 transition-colors duration-200 relative">
-                        <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${syncSmartBox ? 'translate-x-4' : ''}`} />
-                      </label>
-                    </div>
+                    <span className="text-emerald-600 text-sm font-black select-none">✓</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -267,21 +366,7 @@ export default function DoctorDashboard() {
                       <h5 className="text-[11px] font-bold text-slate-800">إرسال وتحديث لوحة المتابع</h5>
                       <p className="text-[9px] text-slate-500">إخطار المتابع من العائلة وتحديث السجل فوراُ عند تغيير الروشتة.</p>
                     </div>
-                    <div className="relative">
-                      <input
-                        id="toggle-caregiver"
-                        type="checkbox"
-                        checked={alertCaregiver}
-                        onChange={(e) => {
-                          setAlertCaregiver(e.target.checked);
-                          showToast(e.target.checked ? "تم تفعيل إشعارات المتابع الفورية 🔔" : "تم تعطيل إشعارات المتابع الفورية ⚠️");
-                        }}
-                        className="sr-only peer"
-                      />
-                      <label htmlFor="toggle-caregiver" className="block w-8 h-4 bg-slate-200 rounded-full cursor-pointer peer-checked:bg-emerald-600 transition-colors duration-200 relative">
-                        <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${alertCaregiver ? 'translate-x-4' : ''}`} />
-                      </label>
-                    </div>
+                    <span className="text-emerald-600 text-sm font-black select-none">✓</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -289,10 +374,7 @@ export default function DoctorDashboard() {
                       <h5 className="text-[11px] font-bold text-slate-800">مراقبة الالتزام وسجل الصندوق</h5>
                       <p className="text-[9px] text-slate-500">الاطلاع المباشر على مؤشرات وفعالية التزام المريض بالمنزل.</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked disabled className="sr-only peer" />
-                      <div className="w-8 h-4 bg-emerald-600 rounded-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all after:translate-x-full opacity-80" />
-                    </label>
+                    <span className="text-emerald-600 text-sm font-black select-none">✓</span>
                   </div>
                 </div>
               </div>
@@ -501,6 +583,44 @@ export default function DoctorDashboard() {
                         }`}>
                           {log.status === 'taken' ? 'تم أخذها' : 'تم إهمالها'}
                         </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* سجل التشخيصات والروشتات السابقة للمريض */}
+              <div className="space-y-3 p-4 border border-emerald-100 rounded-2xl bg-emerald-50/10">
+                <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                  <span>📂</span> سجل تشخيصات وروشتات المريض السابقة:
+                </h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {prescriptionHistory.length === 0 ? (
+                    <p className="text-[10px] text-slate-400 text-center py-5 bg-slate-50 border border-slate-100 rounded-xl">
+                      لا توجد تشخيصات أو روشتات سابقة مسجلة لهذا المريض بعد.
+                    </p>
+                  ) : (
+                    [...prescriptionHistory].reverse().map((pr: Prescription) => (
+                      <div key={pr.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 text-right shadow-sm">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                          <span className="text-[11px] font-extrabold text-slate-800">{pr.diagnosis}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">{pr.date}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-slate-400 font-medium">الأدوية الموصوفة:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {pr.medications.map((med, idx) => (
+                              <span key={idx} className="text-[9px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium border border-slate-200/50">
+                                {med.name} ({med.dose})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {pr.doctorName && (
+                          <div className="text-left text-[8px] text-slate-400 font-medium">
+                            بواسطة: {pr.doctorName}
+                          </div>
+                        )}
                       </div>
                     ))
                   )}

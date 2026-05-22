@@ -10,6 +10,7 @@ import AlarmScreen from './pages/AlarmScreen.tsx';
 import DoctorDashboard from './pages/DoctorDashboard.tsx';
 import CaregiverDashboard from './pages/CaregiverDashboard.tsx';
 import SmartBoxSimulator from './pages/SmartBoxSimulator.tsx';
+import PrescriptionsList from './pages/PrescriptionsList.tsx';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/doctor" element={<DoctorDashboard />} />
         <Route path="/caregiver" element={<CaregiverDashboard />} />
         <Route path="/smart-box" element={<SmartBoxSimulator />} />
+        <Route path="/prescriptions" element={<PrescriptionsList />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

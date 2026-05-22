@@ -161,13 +161,15 @@ export default function SmartBoxSimulator() {
           </div>
 
           {/* مجسم ثلاثي الأبعاد مقرب للصندوق الذكي بالـ CSS */}
-          <div className="bg-slate-800 border-2 border-slate-700 rounded-[32px] p-5 shadow-2xl relative space-y-4">
+          <div className="bg-slate-800 border-2 border-slate-700 rounded-4xl p-5 shadow-2xl relative space-y-4">
             
             {/* مؤشر ليد التنبيه الرئيسي بالأعلى */}
-            <div className="flex justify-center items-center gap-1">
-              <div className={`w-3 h-3 rounded-full ${isAlerting ? 'bg-red-600 animate-ping' : 'bg-emerald-600'}`} />
-              <div className={`w-3 h-3 rounded-full absolute ${isAlerting ? 'bg-red-500' : 'bg-emerald-500'}`} />
-              <span className="text-[10px] text-slate-400 font-semibold mr-4">لمبة إشارة التنبيه</span>
+            <div className="flex justify-center items-center gap-2">
+              <div className="relative flex h-3 w-3">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAlerting ? 'bg-red-400' : 'bg-emerald-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${isAlerting ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-semibold">لمبة إشارة التنبيه</span>
             </div>
 
             {/* الأدراج الثلاثة */}
@@ -189,8 +191,8 @@ export default function SmartBoxSimulator() {
                       }}
                       className={`absolute inset-0 h-10 w-full rounded-xl border transition-all duration-300 flex items-center justify-between px-4 shadow-[0_4px_8px_rgba(0,0,0,0.3)] cursor-pointer ${
                         isOpen
-                          ? 'bg-gradient-to-r from-red-600 to-red-500 border-red-400 text-white animate-bounce'
-                          : 'bg-gradient-to-r from-slate-700 to-slate-600 border-slate-500 text-slate-200 hover:from-slate-600 hover:to-slate-500'
+                          ? 'bg-linear-to-r from-red-600 to-red-500 border-red-400 text-white animate-bounce'
+                          : 'bg-linear-to-r from-slate-700 to-slate-600 border-slate-500 text-slate-200 hover:from-slate-600 hover:to-slate-500'
                       }`}
                     >
                       <div className="flex items-center gap-2">
