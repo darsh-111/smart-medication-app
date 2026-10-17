@@ -1,0 +1,18 @@
+import React from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { usePatient } from './patient';
+import { styles as s, colors as c } from './theme';
+import type { Medication } from './domain';
+export function Label({ children, style }: { children: React.ReactNode; style?: object }) { const { direction } = usePatient(); return <Text style={[s.text, direction, style]}>{children}</Text>; }
+export function Icon({ name, size = 22, color = c.ink }: { name: React.ComponentProps<typeof Ionicons>['name']; size?: number; color?: string }) { return <Ionicons name={name} size={size} color={color} />; }
+export function Button({ title, onPress, secondary = false, disabled=false }: { title: string; onPress: () => void; secondary?: boolean; disabled?:boolean }) { const { row } = usePatient(); return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.button,disabled && {opacity:0.5}, row, secondary && s.secondary, pressed && { opacity: 0.7 }]}><Text style={[s.buttonText, secondary && { color: c.green }]}>{title}</Text></Pressable>; }
+export function Pill({ title, muted = false }: { title: string; muted?: boolean }) { return <View style={[s.pill, muted && { backgroundColor: '#EDF0E9' }]}><Text style={[s.pillText, muted && { color: c.muted }]}>{title}</Text></View>; }
+export function LanguageButton() { const { row, t, toggleLanguage } = usePatient(); return <Pressable accessibilityRole="button" accessibilityLabel={t('language')} onPress={toggleLanguage} style={[s.language, row]}><Icon name="globe-outline" size={17} /><Text style={s.link}>{t('otherLanguage')}</Text></Pressable>; }
+export function Brand() { const { row, t } = usePatient(); return <View style={[s.row, row]}><View style={s.brandIcon}><Icon name="leaf-outline" color={c.white} size={20} /></View><Text style={s.brand}>{t('brand')}</Text></View>; }
+export function Section({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) { const { row } = usePatient(); return <View style={[s.section, row]}><Label style={s.sectionTitle}>{title}</Label>{action && <Pressable accessibilityRole="button" onPress={onAction} style={s.touch}><Text style={s.link}>{action}</Text></Pressable>}</View>; }
+export function DemoNote() { const { row, t } = usePatient(); return <View style={[s.note, row]}><Icon name="flask-outline" size={15} color={c.muted} /><Label style={[s.small, s.flex]}>{t('demoNote')}</Label></View>; }
+export function MedicationCard({ medication, day, onOpen }: { medication: Medication; day: string; onOpen: () => void }) {
+  const { t, row, rtl, status, formatTime } = usePatient(); const value = status(medication, day);
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${t(medication.name)}, ${formatTime(medication.time)}, ${t(value ?? 'pending')}`} onPress={onOpen} style={({ pressed }) => [s.medCard, row, pressed && { opacity: 0.7 }]}><View style={[s.medIcon, { backgroundColor: medication.color }]}><Icon name="medical-outline" /></View><View style={s.flex}><Label style={s.medium}>{t(medication.name)}</Label><Label style={s.small}>{t('sampleDose')} · {t(medication.period)}</Label><View style={[row, { marginTop: 8 }]}><Pill title={t(value ?? 'pending')} muted={!value} /></View></View><View style={s.timeColumn}><Text style={s.time}>{formatTime(medication.time)}</Text><Icon name={value === 'taken' ? 'checkmark-circle' : rtl ? 'chevron-back' : 'chevron-forward'} size={20} color={value === 'taken' ? c.green : '#A4ADA5'} /></View></Pressable>;
+}
